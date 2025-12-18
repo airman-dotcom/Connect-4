@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+  <script src="https://unpkg.com/kaplay@3001.0.19/dist/kaplay.js"></script>
+
+</head>
+<body>
+</body>
+<script>
+    kaplay();
+    let cols = []
+    let l = 7*120+30*8
+    let dots = [];
+    
+    let current = 0;
+    let cc = [150,300,450,600,750,900,1050]
+    let board = add([
+        rect(l, 6*60+30*7),
+        pos((width()-l)/2-115,10),
+        color(BLUE),
+        area()
+    ])
+    let n = 0
+    class Game {
+        constructor(){
+            this.board = [[0,0,0,0,0,0,0],
+                      [0,0,0,0,0,0,0],
+                      [0,0,0,0,0,0,0],
+                      [0,0,0,0,0,0,0],
+                      [0,0,0,0,0,0,0],
+                      [0,0,0,0,0,0,0]]
+            this.fulls = []
+        }
+
+        evaluate(){
+            let row_check = this.board.map(row => row.join("")).join("|");           
+            let col_check = "";
+            let diag_check1 = [];
+            let diag_check2 = [];
+            for (let i = 0;i<this.board[0].length;i++){
+                for (let j = 0; j<this.board.length;j++){
+                    col_check += this.board[j][i];
+                }
+            }
+            for (let i = 0; i<3;i++){
+                for (let j = 0; j<4;j++){
+                    diag_check1.push(this.board[i][j].toString()+ this.board[i+1][j+1].toString()+ this.board[i+2][j+2].toString()+this.board[i+3][j+3].toString())
+                }
+            }
+            let kk = [5,4,3]
+            for (let i = 0;i<3;i++){
+                let ib = kk[i];
+                for (let j = 0;j<4;j++){
+                    diag_check2.push(this.board[ib][j].toString() + this.board[ib-1][j+1].toString() + this.board[ib-2][j+2].toString()+ this.board[ib-3][j+3].toString())
+                }
+            }
+            if (row_check.includes("1111") || col_check.includes("1111") || diag_check1.includes("1111") || diag_check2.includes("1111")){
+                return [true, 1]
+            }
+            if (row_check.includes("2222") || col_check.includes("2222") || diag_check1.includes("2222") || diag_check2.includes("2222")){
+                return [true, 2]
+            }
+            return [false]
+        }
+
+        count(c, n){
+            let i = 0;
+            for (let j = 0; j<c.length;j++){
+                if (c[j] == n){
+                    i +=1;
+                }
+            }
+            return i;
+        }
+
+        place(column, player){
+            let col = [];
+            for (let i = 0;i<6;i++){
+                col.push(this.board[i][column])
+            }
+            col.reverse();
+            if (this.count(col,0) == 1){
+                this.fulls.push(column)
+            }
+            this.board[this.board.length-1-col.indexOf(0)][column] = player;
+        }
+
+        output_fulls(){
+            return this.fulls;
+        }
+
+        out(){
+            return this.board;
+        }
+    }
+
+    class Player {
+        constructor(qtable, states){
+            this.qtable = qtable;
+            this.states = states;
+            this.player_num = 2;
+        }
+
+        remember(board){
+            let f = []
+            let g = 0;
+            for (let i = 0; i<board.length;i++){
+                let u = 0;
+                let ib = board[i]
+                for (let j = 0; j<ib.length;j++){
+                    u += 10**j * ib[j]
+                }
+                f.push(u)
+            }
+            //for (let j = 0; j<f.length;j++){
+            //    g += 10**j * f[j];
+            //}
+            g = f.join("")
+            this.board = g;
+        }
+
+        forward(fulls){
+            if (!Object.keys(this.states).includes(this.board)){
+                if (this.qtable.length == 0){
+                    this.states[this.board] = 0
+                } else {
+                    this.states[this.board] = this.qtable.length;
+                }
+                this.qtable.push([])
+                this.qtable[this.states[this.board]] = [Math.random(),Math.random(),Math.random(),Math.random(),Math.random(),Math.random(),Math.random()]
+            }
+            let use = [...this.qtable[this.states[this.board]]]
+            for (let i = 0; i<fulls.length;i++){
+                use[fulls[i]] = -999;
+            }
+
+            let move = use.indexOf(Math.max(...use))
+            return move;
+        }
+
+    }
+
+    for (let j = 0;j<6;j++){
+    for (let i = 0; i<7;i++){
+        cols.push((width()-l)/2+i*150 + 90)
+            k = add([
+                circle(40),
+                pos((width()-l)/2+i*150 + 90-115,90*j+70),
+                color(YELLOW),
+                area(),
+                n.toString()
+            ])
+            dots.push(k)
+            n+=1
+        }
+    }
+
+let arrow = add([
+    pos(324, 20),
+    polygon([vec2(0,0), vec2(25,25), vec2(50,0)]),
+    outline(4),
+    area(),
+])
+
+onUpdate(() => {
+    arrow.pos.x = Math.round((mousePos().x-20)/150) * (150)
+})
+
+function p(q, s){
+    let D = false;
+    let g = new Game();
+    let p2 = new Player(q,s)
+    onClick(() => {
+        let ff = cc.indexOf(arrow.pos.x);
+        if (ff < 0){
+            ff = 0
+        }
+        if (ff > 6){
+            ff = 6
+        }
+        g.place(ff, 1)
+        decision = g.evaluate()
+        let res = g.out().flat();
+        for (let k = 0;k<res.length;k++){
+            if (res[k] == 1){
+                dots[k].use(color(MAGENTA))
+            } else if (res[k] == 2){
+                dots[k].use(color(RED));
+            }
+        }
+        if (decision[0] == true){
+            alert("Player " + decision[1] + " has won!!!")
+            return
+        }
+        fulls = g.output_fulls()
+        p2.remember(g.out())
+        m2 = p2.forward(fulls)
+        g.place(m2, 2)
+        decision = g.evaluate()
+        res = g.out().flat();
+        for (let k = 0;k<res.length;k++){
+            if (res[k] == 1){
+                dots[k].use(color(MAGENTA))
+            } else if (res[k] == 2){
+                dots[k].use(color(RED));
+            }
+        }
+        if (decision[0] == true){
+            alert("Player " + decision[1] + " has won!!!")
+            return
+        }
+    })
+}
+
+//onClick(() => {
+//   debug.log(cc.indexOf(arrow.pos.x))
+//})
+
+
+    
+    function f(){
+fetch('/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json', // Specify the content type
+        },
+        body: {}
+    })
+    .then(response => response.json())
+    .then(data => {
+        
+        p(data["data"][0],data["data"][1])
+
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+    
+    }
+    document.body.onload = function(){
+    f()
+}
+</script>
+</html>
