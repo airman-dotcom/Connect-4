@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+  <script src="https://unpkg.com/kaplay@3001.0.19/dist/kaplay.js"></script>
+
+</head>
+<body>
+</body>
+<script>
+    kaplay();
+    let cols = []
+    let l = 7*120+30*8
+    let dots = [];
+    
+    let current = 0;
+    let cc = [150,300,450,600,750,900,1050]
+    let board = add([
+        rect(l, 6*60+30*7),
+        pos((width()-l)/2-115,10),
+        color(BLUE),
+        area()
+    ])
+    let n = 0
+    class Game {
+        constructor(){
+            this.board = [[0,0,0,0,0,0,0],
+                      [0,0,0,0,0,0,0],
+                      [0,0,0,0,0,0,0],
+                      [0,0,0,0,0,0,0],
+                      [0,0,0,0,0,0,0],
+                      [0,0,0,0,0,0,0]]
+            this.fulls = []
+        }
+
+        evaluate(){
+            let row_check = this.board.map(row => row.join("")).join("|");           
+            let col_check = "";
+            let diag_check1 = [];
+            let diag_check2 = [];
+            for (let i = 0;i<this.board[0].length;i++){
+                for (let j = 0; j<this.board.length;j++){
+                    col_check += this.board[j][i];
+                }
+            }
+            for (let i = 0; i<3;i++){
+                for (let j = 0; j<4;j++){
+                    diag_check1.push(this.board[i][j].toString()+ this.board[i+1][j+1].toString()+ this.board[i+2][j+2].toString()+this.board[i+3][j+3].toString())
+                }
+            }
+            let kk = [5,4,3]
+            for (let i = 0;i<3;i++){
+                let ib = kk[i];
+                for (let j = 0;j<4;j++){
+                    diag_check2.push(this.board[ib][j].toString() + this.board[ib-1][j+1].toString() + this.board[ib-2][j+2].toString()+ this.board[ib-3][j+3].toString())
+                }
+            }
+            if (row_check.includes("1111") || col_check.includes("1111") || diag_check1.includes("1111") || diag_check2.includes("1111")){
+                return [true, 1]
+            }
+            if (row_check.includes("2222") || col_check.includes("2222") || diag_check1.includes("2222") || diag_check2.includes("2222")){
+                return [true, 2]
+            }
+            return [false]
+        }
+
+        count(c, n){
+            let i = 0;
+            for (let j = 0; j<c.length;j++){
+                if (c[j] == n){
+                    i +=1;
+                }
+            }
+            return i;
+        }
+
+        place(column, player){
+            let col = [];
+            for (let i = 0;i<6;i++){
+                col.push(this.board[i][column])
+            }
+            col.reverse();
+            if (this.count(col,0) == 1){
+                this.fulls.push(column)
+            }
+            this.board[this.board.length-1-col.indexOf(0)][column] = player;
+        }
+
+        output_fulls(){
+            return this.fulls;
+        }
+
+        out(){
+            return this.board;
+        }
+    }
+
+    class Player {
+        constructor(probs){
+            this.player_num = 2;
+            this.probs = probs;
+            this.plays = "";
+        }
+
+        remember(p_move){
+            this.plays += p_move.toString()
+        }
+
+        forward(fulls){
+            if (this.plays.length == 0){
+                this.probs = {"0":0.1428,"1":0.1428,"2":0.1428,"3":0.1428,"4":0.1428,"5":0.1428,"6":0.1428}
+                let move = Math.floor(Math.random() * 7);
+                this.plays += move.toString();
+                return move;
+            }
+            if (!Object.keys(this.probs).includes(this.plays)){
+                this.probs[this.plays] = {"0":0.1428,"1":0.1428,"2":0.1428,"3":0.1428,"4":0.1428,"5":0.1428,"6":0.1428}
+                let move = Math.floor(Math.random() * 7);
+                while (fulls.includes(move)){
+                    move = Math.floor(Math.random() * 7);
+                }
+                this.plays += move.toString();
+                return move;
+            }
+            let move = null;
+            let probs = Object.values(this.probs[this.plays])
+            let r = Math.random();
+            for (let i = 0;i<probs.length-1;i++){
+                if (r<=probs[i]){
+                    move = 0;
+                    break;
+                }
+                if (r > probs[i] && r <= probs[i+1]){
+                    move = i;
+                    break;
+                }
+            }
+            if (move == null){
+                move = 6
+            }
+
+            while (fulls.includes(move)){
+                move = null;
+                r = Math.random();
+                for (let i = 0;i<probs.length-1;i++){
+                    if (r<=probs[i]){
+                        move = 0;
+                        break;
+                    }
+                    if (r > probs[i] && r <= probs[i+1]){
+                        move = i;
+                        break;
+                    }
+                }
+                if (move == null){
+                    move = 6
+                }
+            }
+            
+            this.plays += move.toString();
+            return move;
+        }
+
+        evaluate(win){
+            let usables = [];
+            if (this.player_num == 1){
+                for (let i = 3;i<this.plays.length+1;i+=2){
+                    usables.push(this.plays.slice(0,i))
+                }
+            } else {
+                for (let i = 2;i<this.plays.length;i+=2){
+                    usables.push(this.plays.slice(0,i))
+                }
+            }
+            if (win == 1){
+                for (let u = 0; u<usables.length;u++){
+                    let uk = usables[u];
+                    let ku = uk.slice(0,uk.length-1);
+                    this.probs[ku][uk[uk.length-1]] += (0.2 + 0.2/6);
+                    for (let l = 0; l<7;l++){
+                        this.probs[ku][l.toString()] -= 0.2/6;
+                    }
+                }
+            } else {
+                for (let u = 0; u<usables.length;u++){
+                    let uk = usables[u];
+                    let ku = uk.slice(0,uk.length-1);
+                    this.probs[ku][uk[uk.length-1]] -= (0.2 + 0.2/6);
+                    for (let l = 0; l<7;l++){
+                        this.probs[ku][l.toString()] += 0.2/6;
+                    }
+                }
+            }
+        }
+
+        reset(){
+            this.plays = "";
+        }
+
+
+
+    }
+
+    for (let j = 0;j<6;j++){
+    for (let i = 0; i<7;i++){
+        cols.push((width()-l)/2+i*150 + 90)
+            k = add([
+                circle(40),
+                pos((width()-l)/2+i*150 + 90-115,90*j+70),
+                color(YELLOW),
+                area(),
+                n.toString()
+            ])
+            dots.push(k)
+            n+=1
+        }
+    }
+
+let arrow = add([
+    pos(324, 20),
+    polygon([vec2(0,0), vec2(25,25), vec2(50,0)]),
+    outline(4),
+    area(),
+])
+
+onUpdate(() => {
+    arrow.pos.x = Math.round((mousePos().x-20)/150) * (150)
+})
+
+function p(m){
+    let D = false;
+    let g = new Game();
+    let p2 = new Player(m)
+    onClick(() => {
+        let ff = cc.indexOf(arrow.pos.x);
+        if (ff < 0){
+            ff = 0
+        }
+        if (ff > 6){
+            ff = 6
+        }
+        g.place(ff, 1)
+        p2.remember(ff);
+        let decision = g.evaluate()
+        let res = g.out().flat();
+        for (let k = 0;k<res.length;k++){
+            if (res[k] == 1){
+                dots[k].use(color(MAGENTA))
+            } else if (res[k] == 2){
+                dots[k].use(color(RED));
+            }
+        }
+        if (decision[0] == true){
+            alert("Player " + decision[1] + " has won!!!")
+            return
+        }
+        let fulls = g.output_fulls()
+        let m2 = p2.forward(fulls)
+        g.place(m2, 2)
+        decision = g.evaluate()
+        res = g.out().flat();
+        for (let k = 0;k<res.length;k++){
+            if (res[k] == 1){
+                dots[k].use(color(MAGENTA))
+            } else if (res[k] == 2){
+                dots[k].use(color(RED));
+            }
+        }
+        if (decision[0] == true){
+            alert("Player " + decision[1] + " has won!!!")
+            return
+        }
+    })
+}
+
+//onClick(() => {
+//   debug.log(cc.indexOf(arrow.pos.x))
+//})
+
+
+    
+    function f(){
+fetch('/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json', // Specify the content type
+        },
+        body: {}
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(data)
+        p(data["data"])
+
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+    
+    }
+    document.body.onload = function(){
+    f()
+}
+</script>
+</html>
