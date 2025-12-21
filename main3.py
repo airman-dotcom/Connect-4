@@ -18,13 +18,14 @@ class Game:
         for i in range(len(self.board[0])):
             for j in range(len(self.board)):
                 col_check += str(self.board[j][i])
+            col_check += "|"
         for i in range(3):
             for j in range(4):
-                diag_check1.append(str(self.board[i][j]) + str(self.board[i+1][j+1]) + str(self.board[i+2][j+2]) + str(self.board[i+3][j+3]))
+                diag_check1.append(str(self.board[i][j]) + str(self.board[i+1][j+1]) + str(self.board[i+2][j+2]) + str(self.board[i+3][j+3]) + "|")
 
         for i in [5,4,3]:
             for j in range(4):
-                diag_check2.append(str(self.board[i][j]) + str(self.board[i-1][j+1]) + str(self.board[i-2][j+2]) + str(self.board[i-3][j+3]))
+                diag_check2.append(str(self.board[i][j]) + str(self.board[i-1][j+1]) + str(self.board[i-2][j+2]) + str(self.board[i-3][j+3]) + "|")
         for row in self.board:
             if "1111" in "".join(map(str, row)):
                 return [True, 1]
@@ -96,7 +97,7 @@ class Player:
                 if r <= probs[i]:
                     move = 0
                     break
-                if r > probs[i] and r<=probs[i+1]:
+                if r > probs[i] and r<=(probs[i+1]+probs[i]):
                     move = i
                     break
             if move == None:
@@ -113,15 +114,19 @@ class Player:
         if win == 1:
             for u in usables:
                 ku = u[:-1]
-                self.probs[ku][u[-1]] = min(1,self.probs[ku][u[-1]]+(0.2 + 0.2/6))
+                added = 0
                 for l in range(7):
-                    self.probs[ku][str(l)]= max(0,self.probs[ku][str(l)]-0.2/6)
+                    added+=self.probs[ku][str(l)]/2
+                    self.probs[ku][str(l)] = max(0,self.probs[ku][str(l)]/2)
+                self.probs[ku][u[-1]] = min(1,self.probs[ku][u[-1]]+added)
+                
         else:
             for u in usables:
                 ku = u[:-1]
-                self.probs[ku][u[-1]] = max(0,self.probs[ku][u[-1]]-(0.2 + 0.2/6))
                 for l in range(7):
-                    self.probs[ku][str(l)] = min(1,self.probs[ku][str(l)]+0.2/6)
+                    self.probs[ku][str(l)] = min(1,self.probs[ku][str(l)]+((self.probs[ku][u[-1]]/1.5)/6))
+                self.probs[ku][u[-1]] = max(0,self.probs[ku][u[-1]]/1.5)
+                
         self.plays = ""
     
     def reset(self):
@@ -188,7 +193,7 @@ def round():
     p2.reset()
 
 def train():
-    for j in range(1000):
+    for j in range(10000):
         print(j)
         round()
     #play()

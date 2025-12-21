@@ -44,23 +44,24 @@
                 for (let j = 0; j<this.board.length;j++){
                     col_check += this.board[j][i];
                 }
+                col_check += "|"
             }
             for (let i = 0; i<3;i++){
                 for (let j = 0; j<4;j++){
-                    diag_check1.push(this.board[i][j].toString()+ this.board[i+1][j+1].toString()+ this.board[i+2][j+2].toString()+this.board[i+3][j+3].toString())
+                    diag_check1.push(this.board[i][j].toString()+ this.board[i+1][j+1].toString()+ this.board[i+2][j+2].toString()+this.board[i+3][j+3].toString() + "|")
                 }
             }
             let kk = [5,4,3]
             for (let i = 0;i<3;i++){
                 let ib = kk[i];
                 for (let j = 0;j<4;j++){
-                    diag_check2.push(this.board[ib][j].toString() + this.board[ib-1][j+1].toString() + this.board[ib-2][j+2].toString()+ this.board[ib-3][j+3].toString())
+                    diag_check2.push(this.board[ib][j].toString() + this.board[ib-1][j+1].toString() + this.board[ib-2][j+2].toString()+ this.board[ib-3][j+3].toString() + "|")
                 }
             }
-            if (row_check.includes("1111") || col_check.includes("1111") || diag_check1.includes("1111") || diag_check2.includes("1111")){
+            if (row_check.includes("1111") || col_check.includes("1111") || (diag_check1.some(d => d.includes("1111"))) || (diag_check2.some(d => d.includes("1111")))){
                 return [true, 1]
             }
-            if (row_check.includes("2222") || col_check.includes("2222") || diag_check1.includes("2222") || diag_check2.includes("2222")){
+            if (row_check.includes("2222") || col_check.includes("2222") || (diag_check1.some(d => d.includes("2222"))) || (diag_check2.some(d => d.includes("2222")))){
                 return [true, 2]
             }
             return [false]
@@ -132,7 +133,7 @@
                     move = 0;
                     break;
                 }
-                if (r > probs[i] && r <= probs[i+1]){
+                if (r > probs[i] && r <= (probs[i+1]+probs[i])){
                     move = i;
                     break;
                 }
@@ -161,38 +162,6 @@
             
             this.plays += move.toString();
             return move;
-        }
-
-        evaluate(win){
-            let usables = [];
-            if (this.player_num == 1){
-                for (let i = 3;i<this.plays.length+1;i+=2){
-                    usables.push(this.plays.slice(0,i))
-                }
-            } else {
-                for (let i = 2;i<this.plays.length;i+=2){
-                    usables.push(this.plays.slice(0,i))
-                }
-            }
-            if (win == 1){
-                for (let u = 0; u<usables.length;u++){
-                    let uk = usables[u];
-                    let ku = uk.slice(0,uk.length-1);
-                    this.probs[ku][uk[uk.length-1]] += (0.2 + 0.2/6);
-                    for (let l = 0; l<7;l++){
-                        this.probs[ku][l.toString()] -= 0.2/6;
-                    }
-                }
-            } else {
-                for (let u = 0; u<usables.length;u++){
-                    let uk = usables[u];
-                    let ku = uk.slice(0,uk.length-1);
-                    this.probs[ku][uk[uk.length-1]] -= (0.2 + 0.2/6);
-                    for (let l = 0; l<7;l++){
-                        this.probs[ku][l.toString()] += 0.2/6;
-                    }
-                }
-            }
         }
 
         reset(){
